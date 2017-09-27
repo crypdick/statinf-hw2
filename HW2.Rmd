@@ -49,22 +49,52 @@ pander(head(gpa_data), style = 'rmarkdown')
 
 From ALSM, page 35: " The director of admissions of a small college selected 120 studdents at random from the new freshman class in a study to determine whether a student's grade point average (GPA) at the end of the freshman year (Y) could be predicted from the ACT test score (X)." Assume that the conditions for a simple linear regression model are met. 
 
-a. Obtain the least squares estimates of $\beta_0$ and $\beta_1$, and state the estimated regression equation. 
+a. Obtain the least squares estimates of $\beta_0$ and $\beta_1$, and state the estimated regression equation.
+```{r}
+lm.fit=lm(GPA~ACT,data=gpa_data)
+summary(lm.fit)
+```
+The fitted model has a $\beta_1 = 0.03883$ and a $\beta_0 = 2.11405$. Therefore, the fitted regression equation is $\hat Y = 0.03883 X + 2.11405$ 
+
 b. Plot the data and show the estimated regression line. Does the estimated regression function appear to fit the data well? Comment.
+```{r}
+ggplot(data = gpa_data, aes(x = ACT, y = GPA))+ geom_point(color = "blue")+geom_smooth(method = "lm", color = "black", se = FALSE)+ggtitle("Predicted GPAs given ACT scores")
+```
+The model does not fit the data very well because the residuals are very large. The data itself is only weakly linear, it looks more like a cloud than a line.
+
 c. Interpret the intercept of the model in context, if appropriate. If not, explain why not.
+
+The interpretation is that the minimum expected ACT score is about 2.11405.
+
 d. Obtain a point estimate of the mean freshman GPA for students with ACT test score X = 30.
+
+
+```{r}
+lm.predict <-makeFun(lm.fit)
+lm.predict(30)
+```
+The fitted model above gives an estimated GPA of 3.278863.
+
 e. What is the point estimate of the change in the mean response when the entrance test score increases by one point?
 f. Compute a 99% confidence interval for $\beta_1$. Interpret the CI. Does it include zero? Why might the director of admissions be interested in whether the confidence interval includes zero?
 g. Use a t-test to test whether or not a linear association exists between ACT score and GPA. Use a level of significance of $\alpha = 0.01$. State the alternative, decision rule, and conclusions.
 h. What is the p-value of your test in the previous part? Interpret the p-value. 
 i. Obtain a 95% confidence interval for the mean freshman GPA for students whose ACT test score is 29. Interpret the CI.
 j. Mary Jones obtained a score of 28 on the ACT. Predict her individual freshman GPA using a 95% prediction interval. Interpret your prediction interval.
+```{r}
+```
 k. Is the prediction interval in the previous part wider than the confidence interval? Should it be?
 l. Set up the ANOVA table.
+```{r}
+```
 m. What is estimated by MS(Res) in your ANOVA table? Under what conditions do MS(Res) and MS(Regr) estimate the same quantity?
 n. Conduct an F-test of whether or not $\beta_1 = 0$. Control the $\alpha$ risk at 0.01. State the alternatives, decision rule, and conclusion. 
 o. Obtain $R^2$ and interpret.
+```{r}
+```
 p. Obtain the correlation. 
+```{r}
+```
 q. Suppose we filter out the observations with GPA < 1.5. Will our $R^2$ likely increase, decrease or stay the same? Why?
 
 
