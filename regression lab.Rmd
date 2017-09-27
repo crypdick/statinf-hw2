@@ -1,0 +1,248 @@
+---
+title: "Linear Regression Lab"
+author: "Statistical Inference 1"
+date: "9/26/2017"
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ALSM)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(ISLR)
+library(MASS)
+library(mosaic)
+library(pander)
+
+knitr::opts_chunk$set(tidy = TRUE, tidy.opts=list(width.cutoff = 60))
+panderOptions('table.split.table', Inf)
+
+```
+
+
+Note: This activity is based on the chapter 3 lab in ISLR, but is adapted to fit our course.
+
+
+# Getting the data
+
+As in the ISLR book, let's use the data set `Boston` from the `MASS` package. This data set has information from 506 neighborhoods in Boston from the late 1970s. There are 14 variables, including `medv` (median value of owner-occupied homes in $1000s) and `lstat` (percent of households with a "low" socioeconomic status).
+
+```{r}
+library(MASS)
+names(Boston)
+```
+
+
+# Calling `lm()`
+
+```{r, eval = FALSE}
+lm.fit <- lm(medv ~ lstat)
+```
+
+```{r}
+#Two options:
+lm.fit=lm(medv~lstat,data=Boston)
+
+# OR
+attach(Boston)
+lm.fit=lm(medv~lstat)
+```
+
+You almost always want to save the output of the linear model call to an object (here, this is lm.fit). This is because many useful functions in R exist that use the linear model output as an argument. Pretty much every function we will learn about in this lab either depends on lm.fit or summary(lm.fit). We will almost never need the raw data after we have called lm().
+
+# Summary vs lm
+
+```{r}
+lm.fit
+summary(lm.fit)
+names(lm.fit)
+```
+
+lm.fit prints very basic information-- basically just the model and coefficient estimates. In contrast, calling summary() on a lm object provides a lot more detail, including standard error, t-statistics, p-values, R-squared, etc. 
+
+All of the information in lm() and summary() of lm can be pulled out using the appropriate R code. What you get may vary depending on which option you use. For instance, consider getting the regression coefficients...
+
+# Estimating the coefficients
+
+There are multiple ways to access the coefficients for a linear model.
+
+First, we could call `coef()` which produces a named numeric vector of coefficients. If we want to pull out a single element, we can use `[]` or `[[]]`
+
+```{r}
+coef(lm.fit)
+coef(lm.fit)[2]
+coef(lm.fit)[[2]]
+
+```
+
+If you want to include the coefficient in some in-line R code in a R markdown file, you should use the `[[]]` which gives a single element and loses the name. For instance, the estimated coefficient for the `lstat` variable is `r coef(lm.fit)[[2]]`. 
+
+Similarly, we could use`$` to access the coefficients, which also gives us a named numeric vector. Accessing the coefficients is the same as above.
+
+```{r}
+lm.fit$coefficients
+```
+
+Finally, we could use either of the above methods with the summary of the lm instead of the lm itself; this approach gives us a matrix rather than a vector. Incidentally, this is also how you can access the t-statistics and p-values for the coefficients:
+
+```{r}
+lm.coef <- summary(lm.fit)$coefficients
+
+coef(summary(lm.fit))
+```
+
+Now if we wanted to access the coefficient of the `lstat` variable, we would use matrix sub-setting:
+
+```{r}
+coef(summary(lm.fit))[2,1]
+```
+
+We can use different row and column numbers to access the standard error, t-values, and p-values.
+
+
+# Making confidence intervals for beta
+
+
+Making confidence intervals for the paramters is pretty straightforward. Just use the `confint` command and input the linear model object. 
+
+```{r}
+confint(lm.fit)
+(lstat_ci <- confint(lm.fit, "lstat", level = 0.99))
+```
+
+This produces either a data frame or a numeric vector and can be subset appropriately. For example, my 99% confidence interval for lstat goes from `r lstat_ci[[1]]` to `r lstat_ci[[2]]`. It is also possible to choose different methods of calculating a confidence interval, but we will not focus on that yet.
+
+If we want to make confidence intervals for Y-hat, we can use the predict function:
+
+```{r}
+predict(lm.fit, data.frame(lstat=(c(5,10,15))), interval="confidence")
+```
+
+
+
+# Fitted values with $\hat{Y}$
+
+
+We just saw one way to get the fitted values for $\hat{Y}$ using the predict function, which gives us not only the fitted value, but also the confidence interval around that value. We can also use the makeFun function in the `mosaic` package (which is useful for coding tasks beyond just fitting y):
+
+```{r}
+lm.predict <- makeFun(lm.fit)
+lm.predict(5)
+lm.predict(c(5,10, 15))
+lm.predict(c(5, 10, 15), interval = "confidence")
+```
+
+
+# Making prediction intervals
+
+```{r}
+
+lm.predict(5, interval = "prediction")
+lm.predict(c(5,10,15), interval = "prediction")
+predict(lm.fit, data.frame(lstat=(c(5,10,15))), interval="prediction")
+
+```
+
+
+# Making and describing scatterplots
+
+With base graphics:
+
+```{r}
+plot(Boston$lstat, Boston$medv, pch = 16, cex = 1.1, col = "blue", main = "My graph")
+abline(lm.fit, lwd = 2, col = "red")
+```
+With ggplot (make sure you've loaded the appropriate libraries first):
+
+```{r}
+ggplot(data = Boston, aes(x = lstat, y = medv)) + 
+  geom_point(color = "blue") + 
+  geom_smooth(method = "lm", color = "black", se = FALSE) + 
+  ggtitle("Boston graph")
+```
+
+When describing a scatter plot, remember *DOTS*: *D*irection, *O*utliers, *T*rend, *S*trength
+
+For our graph in this example:
+Direction: negative (as lstat gets bigger, medv gets smaller)
+Outliers: There appear to be some outliers at medv = 50 that don't fit the general pattern
+Trend: The graph appears linear-- no curves or changing directions
+Strength: There appears to be a strong association/correlation between the two variables.
+
+# R^2, adjusted R^2, and correlation
+
+Recall that R-squared is basically the percent of variation in y that is explained by x. We often report it as a decimal or as a percentage, and we use it as a measure of model fit. However, this introduces a slight problem-- the more variables we add to a model, the higher R-squared will be (or at least, it will never decrease), even if the new variables are pretty much irrelevant. Adjusted R-squared is R-squared that has been penalized based on the number of parameters in the model. This means it is more helpful when choosing a model, because it strikes a balance between how well the model fits the data vs. how complicated the model is.
+
+We can look up the R-squared value in the summary of the lm. If we want to actually retrieve the value, we can access it like this:
+
+```{r}
+summary(lm.fit)$r.squared
+summary(lm.fit)$adj.r.squared
+```
+
+We have also seen that in the simple linear regression model (with only one predictor variable), R-squared is the square of the correlation coefficient between x and y. This means we have two ways to find correlation:
+
+```{r}
+sqrt(summary(lm.fit)$r.squared) # make sure to change the sign to fit the data!
+
+cor(Boston$medv ~ Boston$lstat) # notation from the mosaic package
+cor(Boston$medv , Boston$lstat) # notation from the base stats package
+```
+
+
+# Test statistics and p-values-- set up, calculation, interpretation
+
+To conduct a test for $H_0: \beta_i = 0$ vs $H_a: \beta_i \neq 0$, we can find our t-statistic and compare it to the appropriate $t_{(n-p')}$ distribution. For instance, if we want $\alpha = 0.5$ level significance in the Boston data example here to test whether $\beta_1 = 0$, we would compare our test statistic to $t_{(1-\alpha/2, n - p')} = t_{(0.975, 504)}$. We can find this value with R:
+
+```{r}
+(t_crit <- qt(0.975, 504))
+```
+
+If the test statistic for our test is more extreme than t_crit, then we reject the null hypothesis. In our example, the test statistic is
+
+```{r}
+(t_stat <- summary(lm.fit)$coefficients[2,3])
+
+abs(t_stat) > t_crit
+```
+So we reject our null hypothesis at the 0.05 level of signficance and conclude that $\beta_1 \neq 0$. 
+
+We can also perform a hypothesis test just using the p-value. A p-value less than 0.05 is generally considered strong evidence to reject the null hypothesis. A p-value less than 0.01 is considered very strong evidence against the null hypothesis. In our example:
+
+```{r}
+(pval <- summary(lm.fit)$coefficients[2,4])
+
+pval < 0.01
+```
+Our p-value is basically 0, so we reject $H_0$. 
+
+We can also retrieve the F-statistic to perform the F-test for $H_0:\beta_1 = 0$ against the two-sided alternative. In this example, 
+
+```{r}
+f_stat <- summary(lm.fit)$fstatistic
+```
+We can compare this to the F(1, 504) distribution as we did with the t-statistic an t-distribution above. As before, we reject the null hypothesis.
+
+# ANOVA and MS(Res)
+
+Finding the analysis of variance table just uses the `anova` command:
+
+```{r}
+anova(lm.fit)
+```
+
+We see here that the MS(Res) = 38.6. We can also find this in the summary of the linear model object:
+
+```{r}
+summary(lm.fit)$sigma   # Gives us the estimate for s
+summary(lm.fit)$sigma^2 # Gives us the estimate for s^2 = MS(Res)
+```
+
+And that's pretty much everything you need to know about simple linear regression in R. The only things we haven't covered are diagnostic plots and regression diagnostics in general, because we cover those later in the course.
+
